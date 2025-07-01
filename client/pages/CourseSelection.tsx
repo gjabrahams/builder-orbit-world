@@ -732,7 +732,7 @@ export default function CourseSelection() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-3">
             {filteredCourses.map((course) => {
               const totalDistance = course.holes.reduce(
                 (sum, hole) => sum + hole.distance.men,
@@ -742,87 +742,86 @@ export default function CourseSelection() {
               const isCustom = course.id.startsWith("custom-");
 
               return (
-                <Card
+                <div
                   key={course.id}
-                  className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
+                  className={`cursor-pointer transition-all duration-200 hover:shadow-md rounded-lg border p-4 ${
                     isSelected
-                      ? "ring-2 ring-primary bg-primary/5"
-                      : "golf-card border-0"
+                      ? "ring-2 ring-primary bg-primary/5 border-primary"
+                      : "golf-card border-0 hover:border-primary/30"
                   }`}
                   onClick={() => setSelectedCourse(course)}
                 >
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-xl mb-2">
-                          {course.name}
-                        </CardTitle>
-                        <CardDescription className="flex items-center gap-2 text-muted-foreground">
-                          <MapPin className="w-4 h-4" />
-                          {course.location}
-                          {isCustom && (
-                            <Badge variant="secondary" className="ml-2">
-                              Custom
-                            </Badge>
-                          )}
-                        </CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg font-semibold">{course.name}</h3>
+                        {isSelected && (
+                          <Badge className="bg-primary text-primary-foreground">
+                            Selected
+                          </Badge>
+                        )}
+                        {isCustom && <Badge variant="secondary">Custom</Badge>}
                       </div>
-                      {isSelected && (
-                        <Badge className="bg-primary text-primary-foreground">
-                          Selected
-                        </Badge>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="text-center">
-                        <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mb-1">
-                          <Flag className="w-4 h-4" />
-                          Holes
-                        </div>
-                        <div className="text-lg font-semibold">
-                          {course.holes.length}
-                        </div>
+                      <div className="flex items-center gap-2 text-muted-foreground mb-3">
+                        <MapPin className="w-4 h-4" />
+                        <span>{course.location}</span>
                       </div>
-                      <div className="text-center">
-                        <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mb-1">
-                          <Flag className="w-4 h-4" />
-                          Par
+                      <div className="grid grid-cols-3 gap-6 max-w-md">
+                        <div className="flex items-center gap-2">
+                          <Flag className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <div className="text-sm text-muted-foreground">
+                              Holes
+                            </div>
+                            <div className="font-medium">
+                              {course.holes.length}
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-lg font-semibold">
-                          {course.par}
+                        <div className="flex items-center gap-2">
+                          <Flag className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <div className="text-sm text-muted-foreground">
+                              Par
+                            </div>
+                            <div className="font-medium">{course.par}</div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-center">
-                        <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mb-1">
-                          <Ruler className="w-4 h-4" />
-                          Distance
-                        </div>
-                        <div className="text-lg font-semibold">
-                          {Math.round(totalDistance / 1000).toFixed(1)}k yds
+                        <div className="flex items-center gap-2">
+                          <Ruler className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <div className="text-sm text-muted-foreground">
+                              Distance
+                            </div>
+                            <div className="font-medium">
+                              {Math.round(totalDistance / 1000).toFixed(1)}k yds
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-
-                    <div className="border-t pt-4">
-                      <h4 className="font-medium mb-2">Course Preview</h4>
+                    <div className="hidden md:block">
+                      <div className="text-sm text-muted-foreground mb-2">
+                        Front 9 Preview
+                      </div>
                       <div className="grid grid-cols-9 gap-1">
                         {course.holes.slice(0, 9).map((hole) => (
                           <div
                             key={hole.number}
-                            className="text-xs text-center p-1 bg-muted rounded"
+                            className="text-xs text-center p-1 bg-muted rounded min-w-[28px]"
                           >
-                            <div className="font-medium">{hole.number}</div>
-                            <div className="text-muted-foreground">
-                              Par {hole.par}
+                            <div className="font-medium text-xs">
+                              {hole.number}
+                            </div>
+                            <div className="text-muted-foreground text-xs">
+                              {hole.par}
                             </div>
                           </div>
                         ))}
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               );
             })}
           </div>
