@@ -496,12 +496,13 @@ export default function CourseSelection() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {sampleCourses.map((course) => {
+          {[...sampleCourses, ...customCourses].map((course) => {
             const totalDistance = course.holes.reduce(
               (sum, hole) => sum + hole.distance.men,
               0,
             );
             const isSelected = selectedCourse?.id === course.id;
+            const isCustom = course.id.startsWith("custom-");
 
             return (
               <Card
@@ -522,6 +523,11 @@ export default function CourseSelection() {
                       <CardDescription className="flex items-center gap-2 text-muted-foreground">
                         <MapPin className="w-4 h-4" />
                         {course.location}
+                        {isCustom && (
+                          <Badge variant="secondary" className="ml-2">
+                            Custom
+                          </Badge>
+                        )}
                       </CardDescription>
                     </div>
                     {isSelected && (
