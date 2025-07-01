@@ -78,3 +78,27 @@ export interface GameSummary {
   }[];
   winner: string;
 }
+
+export interface SavedRound {
+  id: string;
+  game: Game;
+  completedAt: Date;
+  playerSummaries: {
+    player: Player;
+    totalStrokes: number;
+    totalPoints: number;
+    eagles: number;
+    birdies: number;
+    pars: number;
+    bogeys: number;
+    doubleBogeys: number;
+    rank: number;
+  }[];
+  teamSummaries?: {
+    teamId: string;
+    teamName: string;
+    players: Player[];
+    totalPoints: number;
+  }[];
+  winner: string;
+}

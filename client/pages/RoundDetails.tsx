@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,257 +24,34 @@ import {
   FileText,
   FileSpreadsheet,
   Users,
-  Target,
-  BarChart3,
-  Home,
+  Calendar,
+  Clock,
+  MapPin,
   Award,
   TrendingUp,
-  Clock,
 } from "lucide-react";
-import { Game, Player, Score, SavedRound } from "@shared/golf-types";
+import { SavedRound } from "@shared/golf-types";
 
-interface PlayerSummary {
-  player: Player;
-  totalStrokes: number;
-  totalPoints: number;
-  holeScores: { [holeNumber: number]: { strokes: number; points: number } };
-  eagles: number;
-  birdies: number;
-  pars: number;
-  bogeys: number;
-  doubleBogeys: number;
-  rank: number;
-}
-
-interface TeamSummary {
-  teamId: string;
-  teamName: string;
-  players: Player[];
-  totalPoints: number;
-  holeResults: { [holeNumber: number]: number };
-}
-
-export default function Summary() {
+export default function RoundDetails() {
   const navigate = useNavigate();
-  const [game, setGame] = useState<Game | null>(null);
-  const [playerSummaries, setPlayerSummaries] = useState<PlayerSummary[]>([]);
-  const [teamSummaries, setTeamSummaries] = useState<TeamSummary[]>([]);
+  const [round, setRound] = useState<SavedRound | null>(null);
 
   useEffect(() => {
-    const savedGame = localStorage.getItem("currentGame");
-    if (savedGame) {
-      const gameData = JSON.parse(savedGame);
-      setGame(gameData);
-      calculateSummaries(gameData);
-      saveCompletedRound(gameData);
+    const viewingRound = localStorage.getItem("viewingRound");
+    if (viewingRound) {
+      setRound(JSON.parse(viewingRound));
     } else {
-      navigate("/");
+      navigate("/saved-rounds");
     }
   }, [navigate]);
 
-  const saveCompletedRound = (gameData: Game) => {
-    try {
-      // Create saved round data
-      const savedRound: SavedRound = {
-        id: `round-${Date.now()}`,
-        game: gameData,
-        completedAt: new Date(),
-        playerSummaries: [],
-        teamSummaries: undefined,
-        winner: "",
-      };
-
-      // Calculate player summaries for saved round
-      const summaries: PlayerSummary[] = gameData.players.map((player) => {
-        let totalStrokes = 0;
-        let totalPoints = 0;
-        let eagles = 0,
-          birdies = 0,
-          pars = 0,
-          bogeys = 0,
-          doubleBogeys = 0;
-
-        gameData.course.holes.forEach((hole) => {
-          const score = gameData.scores.find(
-            (s) => s.playerId === player.id && s.holeNumber === hole.number,
-          );
-          if (score) {
-            totalStrokes += score.strokes;
-            totalPoints += score.points;
-
-            const scoreToPar = score.strokes - hole.par;
-            if (scoreToPar <= -2) eagles++;
-            else if (scoreToPar === -1) birdies++;
-            else if (scoreToPar === 0) pars++;
-            else if (scoreToPar === 1) bogeys++;
-            else if (scoreToPar >= 2) doubleBogeys++;
-          }
-        });
-
-        return {
-          player,
-          totalStrokes,
-          totalPoints,
-          eagles,
-          birdies,
-          pars,
-          bogeys,
-          doubleBogeys,
-          rank: 0,
-        };
-      });
-
-      // Sort by points and assign ranks
-      summaries.sort((a, b) => b.totalPoints - a.totalPoints);
-      summaries.forEach((summary, index) => {
-        summary.rank = index + 1;
-      });
-
-      savedRound.playerSummaries = summaries;
-      savedRound.winner = summaries[0]?.player.name || "";
-
-      // Calculate team summaries if betterball
-      if (gameData.mode === "betterball" && gameData.teams) {
-        const teamResults = gameData.teams.map((team) => {
-          let totalPoints = 0;
-          gameData.course.holes.forEach((hole) => {
-            const teamHoleScores = team.players.map((player) => {
-              const score = gameData.scores.find(
-                (s) => s.playerId === player.id && s.holeNumber === hole.number,
-              );
-              return score?.points || 0;
-            });
-            totalPoints += Math.max(...teamHoleScores, 0);
-          });
-
-          return {
-            teamId: team.id,
-            teamName: team.name,
-            players: team.players,
-            totalPoints,
-          };
-        });
-
-        teamResults.sort((a, b) => b.totalPoints - a.totalPoints);
-        savedRound.teamSummaries = teamResults;
-      }
-
-      // Get existing saved rounds
-      const existingSavedRounds = localStorage.getItem("savedRounds");
-      const savedRounds = existingSavedRounds
-        ? JSON.parse(existingSavedRounds)
-        : [];
-
-      // Add new round
-      savedRounds.push(savedRound);
-
-      // Save back to localStorage
-      localStorage.setItem("savedRounds", JSON.stringify(savedRounds));
-
-      console.log("Round saved successfully!");
-    } catch (error) {
-      console.error("Error saving round:", error);
-    }
-  };
-
-  const calculateSummaries = (gameData: Game) => {
-    // Calculate player summaries
-    const summaries: PlayerSummary[] = gameData.players.map((player) => {
-      let totalStrokes = 0;
-      let totalPoints = 0;
-      const holeScores: {
-        [holeNumber: number]: { strokes: number; points: number };
-      } = {};
-      let eagles = 0,
-        birdies = 0,
-        pars = 0,
-        bogeys = 0,
-        doubleBogeys = 0;
-
-      gameData.course.holes.forEach((hole) => {
-        const score = gameData.scores.find(
-          (s) => s.playerId === player.id && s.holeNumber === hole.number,
-        );
-        if (score) {
-          totalStrokes += score.strokes;
-          totalPoints += score.points;
-          holeScores[hole.number] = {
-            strokes: score.strokes,
-            points: score.points,
-          };
-
-          // Count score types
-          const scoreToPar = score.strokes - hole.par;
-          if (scoreToPar <= -2) eagles++;
-          else if (scoreToPar === -1) birdies++;
-          else if (scoreToPar === 0) pars++;
-          else if (scoreToPar === 1) bogeys++;
-          else if (scoreToPar >= 2) doubleBogeys++;
-        }
-      });
-
-      return {
-        player,
-        totalStrokes,
-        totalPoints,
-        holeScores,
-        eagles,
-        birdies,
-        pars,
-        bogeys,
-        doubleBogeys,
-        rank: 0, // Will be set after sorting
-      };
-    });
-
-    // Sort by points and assign ranks
-    summaries.sort((a, b) => b.totalPoints - a.totalPoints);
-    summaries.forEach((summary, index) => {
-      summary.rank = index + 1;
-    });
-
-    setPlayerSummaries(summaries);
-
-    // Calculate team summaries for betterball
-    if (gameData.mode === "betterball" && gameData.teams) {
-      const teamResults: TeamSummary[] = gameData.teams.map((team) => {
-        let totalPoints = 0;
-        const holeResults: { [holeNumber: number]: number } = {};
-
-        gameData.course.holes.forEach((hole) => {
-          const teamHoleScores = team.players.map((player) => {
-            const score = gameData.scores.find(
-              (s) => s.playerId === player.id && s.holeNumber === hole.number,
-            );
-            return score?.points || 0;
-          });
-          const bestHoleScore = Math.max(...teamHoleScores, 0);
-          totalPoints += bestHoleScore;
-          holeResults[hole.number] = bestHoleScore;
-        });
-
-        return {
-          teamId: team.id,
-          teamName: team.name,
-          players: team.players,
-          totalPoints,
-          holeResults,
-        };
-      });
-
-      teamResults.sort((a, b) => b.totalPoints - a.totalPoints);
-      setTeamSummaries(teamResults);
-    }
-  };
-
   const exportToPDF = () => {
-    if (!game) return;
+    if (!round) return;
 
-    // Create printable content
     const printContent = `
       <html>
         <head>
-          <title>${game.course.name} - ${new Date(game.startTime).toLocaleDateString()}</title>
+          <title>${round.game.course.name} - ${new Date(round.completedAt).toLocaleDateString()}</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
             .header { text-align: center; margin-bottom: 30px; }
@@ -287,30 +64,30 @@ export default function Summary() {
         <body>
           <div class="header">
             <h1>GolfScore Pro</h1>
-            <h2>${game.course.name}</h2>
-            <p>${new Date(game.startTime).toLocaleDateString()} • ${game.mode === "betterball" ? "Betterball" : "Individual"}</p>
+            <h2>${round.game.course.name}</h2>
+            <p>${new Date(round.completedAt).toLocaleDateString()} • ${round.game.mode === "betterball" ? "Betterball" : "Individual"}</p>
           </div>
-
+          
           <table class="scorecard">
             <thead>
               <tr>
                 <th>Hole</th>
                 <th>Par</th>
                 <th>S.I.</th>
-                ${game.players.map((p) => `<th>${p.name}</th>`).join("")}
+                ${round.game.players.map((p) => `<th>${p.name}</th>`).join("")}
               </tr>
             </thead>
             <tbody>
-              ${game.course.holes
+              ${round.game.course.holes
                 .map(
                   (hole) => `
                 <tr>
                   <td>${hole.number}</td>
                   <td>${hole.par}</td>
                   <td>${hole.handicap}</td>
-                  ${game.players
+                  ${round.game.players
                     .map((player) => {
-                      const score = game.scores.find(
+                      const score = round.game.scores.find(
                         (s) =>
                           s.playerId === player.id &&
                           s.holeNumber === hole.number,
@@ -324,18 +101,18 @@ export default function Summary() {
                 .join("")}
               <tr style="background-color: #f9f9f9; font-weight: bold;">
                 <td colspan="3">TOTAL</td>
-                ${playerSummaries.map((summary) => `<td>${summary.totalStrokes}</td>`).join("")}
+                ${round.playerSummaries.map((summary) => `<td>${summary.totalStrokes}</td>`).join("")}
               </tr>
               <tr style="background-color: #e8f5e8; font-weight: bold;">
                 <td colspan="3">POINTS</td>
-                ${playerSummaries.map((summary) => `<td>${summary.totalPoints}</td>`).join("")}
+                ${round.playerSummaries.map((summary) => `<td>${summary.totalPoints}</td>`).join("")}
               </tr>
             </tbody>
           </table>
-
+          
           <div class="summary">
             <h3>Final Results</h3>
-            ${playerSummaries
+            ${round.playerSummaries
               .map(
                 (summary, index) => `
               <p>${index + 1}. ${summary.player.name} - ${summary.totalPoints} points (${summary.totalStrokes} strokes)</p>
@@ -347,7 +124,6 @@ export default function Summary() {
       </html>
     `;
 
-    // Open print dialog
     const printWindow = window.open("", "_blank");
     if (printWindow) {
       printWindow.document.write(printContent);
@@ -356,25 +132,22 @@ export default function Summary() {
     }
   };
 
-  const exportToExcel = () => {
-    if (!game) return;
+  const exportToCSV = () => {
+    if (!round) return;
 
-    // Create CSV content
-    let csvContent = `Course,${game.course.name}\n`;
-    csvContent += `Date,${new Date(game.startTime).toLocaleDateString()}\n`;
-    csvContent += `Mode,${game.mode === "betterball" ? "Betterball" : "Individual"}\n\n`;
+    let csvContent = `Course,${round.game.course.name}\n`;
+    csvContent += `Date,${new Date(round.completedAt).toLocaleDateString()}\n`;
+    csvContent += `Mode,${round.game.mode === "betterball" ? "Betterball" : "Individual"}\n\n`;
 
-    // Headers
-    csvContent += `Hole,Par,S.I.,${game.players.map((p) => p.name).join(",")}\n`;
+    csvContent += `Hole,Par,S.I.,${round.game.players.map((p) => p.name).join(",")}\n`;
 
-    // Hole data
-    game.course.holes.forEach((hole) => {
+    round.game.course.holes.forEach((hole) => {
       const holeData = [
         hole.number,
         hole.par,
         hole.handicap,
-        ...game.players.map((player) => {
-          const score = game.scores.find(
+        ...round.game.players.map((player) => {
+          const score = round.game.scores.find(
             (s) => s.playerId === player.id && s.holeNumber === hole.number,
           );
           return score?.strokes || "";
@@ -383,35 +156,28 @@ export default function Summary() {
       csvContent += `${holeData.join(",")}\n`;
     });
 
-    // Totals
-    csvContent += `TOTAL,,,${playerSummaries.map((s) => s.totalStrokes).join(",")}\n`;
-    csvContent += `POINTS,,,${playerSummaries.map((s) => s.totalPoints).join(",")}\n`;
+    csvContent += `TOTAL,,,${round.playerSummaries.map((s) => s.totalStrokes).join(",")}\n`;
+    csvContent += `POINTS,,,${round.playerSummaries.map((s) => s.totalPoints).join(",")}\n`;
 
-    // Download CSV
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `golf-scorecard-${game.course.name.replace(/\s+/g, "-")}-${new Date(game.startTime).toISOString().split("T")[0]}.csv`;
+    a.download = `golf-round-${round.game.course.name.replace(/\s+/g, "-")}-${new Date(round.completedAt).toISOString().split("T")[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   };
 
-  const startNewRound = () => {
-    localStorage.removeItem("currentGame");
-    localStorage.removeItem("selectedCourse");
-    navigate("/");
-  };
-
-  if (!game) {
+  if (!round) {
     return <div>Loading...</div>;
   }
 
-  const winner = playerSummaries[0];
+  const winner = round.playerSummaries[0];
   const roundDuration =
-    new Date().getTime() - new Date(game.startTime).getTime();
+    new Date(round.completedAt).getTime() -
+    new Date(round.game.startTime).getTime();
   const hours = Math.floor(roundDuration / (1000 * 60 * 60));
   const minutes = Math.floor((roundDuration % (1000 * 60 * 60)) / (1000 * 60));
 
@@ -425,31 +191,38 @@ export default function Summary() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate("/scoring")}
+                onClick={() => navigate("/saved-rounds")}
                 className="gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Back to Scoring
+                Back to Rounds
               </Button>
               <div>
-                <h1 className="text-2xl font-bold">Round Summary</h1>
+                <h1 className="text-2xl font-bold">Round Details</h1>
                 <p className="text-sm text-muted-foreground">
-                  {game.course.name} •{" "}
-                  {new Date(game.startTime).toLocaleDateString()}
+                  {round.game.course.name} •{" "}
+                  {new Date(round.completedAt).toLocaleDateString()}
                 </p>
               </div>
             </div>
             <div className="flex gap-2">
               <Button
-                onClick={() => navigate("/saved-rounds")}
+                onClick={exportToPDF}
                 variant="outline"
+                size="sm"
                 className="gap-2"
               >
-                View All Rounds
+                <FileText className="w-4 h-4" />
+                Print
               </Button>
-              <Button onClick={startNewRound} className="golf-button gap-2">
-                <Home className="w-4 h-4" />
-                New Round
+              <Button
+                onClick={exportToCSV}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                Export
               </Button>
             </div>
           </div>
@@ -457,34 +230,29 @@ export default function Summary() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {/* Winner Announcement */}
-        {winner && (
-          <Card className="golf-card border-0 mb-8 text-center">
-            <CardHeader>
-              <div className="w-20 h-20 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <Trophy className="w-10 h-10 text-white" />
-              </div>
-              <CardTitle className="text-3xl mb-2">
-                🏆 Congratulations!
-              </CardTitle>
-              <CardDescription className="text-xl font-medium">
-                {winner.player.name} wins with {winner.totalPoints} points
-              </CardDescription>
-              <p className="text-muted-foreground mt-2">
-                {winner.totalStrokes} total strokes • {winner.birdies} birdies •{" "}
-                {winner.eagles} eagles
-              </p>
-            </CardHeader>
-          </Card>
-        )}
-
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Detailed Scorecard */}
           <div className="xl:col-span-3 space-y-6">
+            {/* Winner Announcement */}
+            <Card className="golf-card border-0 text-center">
+              <CardHeader>
+                <div className="w-20 h-20 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <Trophy className="w-10 h-10 text-white" />
+                </div>
+                <CardTitle className="text-2xl mb-2">
+                  🏆 {winner.player.name} Wins!
+                </CardTitle>
+                <CardDescription className="text-lg">
+                  {winner.totalPoints} points • {winner.totalStrokes} strokes
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            {/* Complete Scorecard */}
             <Card className="golf-card border-0">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" />
+                  <Award className="w-5 h-5" />
                   Complete Scorecard
                 </CardTitle>
                 <CardDescription>
@@ -499,7 +267,7 @@ export default function Summary() {
                         <TableHead className="w-12">Hole</TableHead>
                         <TableHead className="w-12">Par</TableHead>
                         <TableHead className="w-12">S.I.</TableHead>
-                        {game.players.map((player) => (
+                        {round.game.players.map((player) => (
                           <TableHead key={player.id} className="text-center">
                             {player.name}
                           </TableHead>
@@ -507,21 +275,24 @@ export default function Summary() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {game.course.holes.map((hole) => (
+                      {round.game.course.holes.map((hole) => (
                         <TableRow key={hole.number}>
                           <TableCell className="font-medium">
                             {hole.number}
                           </TableCell>
                           <TableCell>{hole.par}</TableCell>
                           <TableCell>{hole.handicap}</TableCell>
-                          {game.players.map((player) => {
-                            const playerSummary = playerSummaries.find(
+                          {round.game.players.map((player) => {
+                            const playerSummary = round.playerSummaries.find(
                               (s) => s.player.id === player.id,
                             );
-                            const holeScore =
-                              playerSummary?.holeScores[hole.number];
-                            const scoreToPar = holeScore
-                              ? holeScore.strokes - hole.par
+                            const score = round.game.scores.find(
+                              (s) =>
+                                s.playerId === player.id &&
+                                s.holeNumber === hole.number,
+                            );
+                            const scoreToPar = score
+                              ? score.strokes - hole.par
                               : 0;
 
                             return (
@@ -529,7 +300,7 @@ export default function Summary() {
                                 key={player.id}
                                 className="text-center"
                               >
-                                {holeScore ? (
+                                {score ? (
                                   <div className="flex flex-col items-center">
                                     <span
                                       className={`font-medium ${
@@ -544,10 +315,10 @@ export default function Summary() {
                                                 : "text-red-600"
                                       }`}
                                     >
-                                      {holeScore.strokes}
+                                      {score.strokes}
                                     </span>
                                     <span className="text-xs text-muted-foreground">
-                                      {holeScore.points}pt
+                                      {score.points}pt
                                     </span>
                                   </div>
                                 ) : (
@@ -563,7 +334,7 @@ export default function Summary() {
                       {/* Totals Row */}
                       <TableRow className="bg-muted/50 font-semibold">
                         <TableCell colSpan={3}>TOTAL</TableCell>
-                        {playerSummaries.map((summary) => (
+                        {round.playerSummaries.map((summary) => (
                           <TableCell
                             key={summary.player.id}
                             className="text-center"
@@ -593,7 +364,7 @@ export default function Summary() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {playerSummaries.map((summary) => (
+                  {round.playerSummaries.map((summary) => (
                     <div
                       key={summary.player.id}
                       className="p-4 border border-border rounded-lg"
@@ -641,10 +412,10 @@ export default function Summary() {
                       <div className="mt-3 pt-3 border-t flex justify-between text-sm">
                         <span>Score to Par:</span>
                         <span className="font-medium">
-                          {summary.totalStrokes - game.course.par > 0
+                          {summary.totalStrokes - round.game.course.par > 0
                             ? "+"
                             : ""}
-                          {summary.totalStrokes - game.course.par}
+                          {summary.totalStrokes - round.game.course.par}
                         </span>
                       </div>
                     </div>
@@ -654,91 +425,66 @@ export default function Summary() {
             </Card>
 
             {/* Team Results */}
-            {game.mode === "betterball" && teamSummaries.length > 0 && (
-              <Card className="golf-card border-0">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="w-5 h-5" />
-                    Betterball Team Results
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {teamSummaries.map((team, index) => (
-                      <div
-                        key={team.teamId}
-                        className={`p-4 rounded-lg border ${
-                          index === 0
-                            ? "border-primary bg-primary/5"
-                            : "border-border"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                                index === 0
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted"
-                              }`}
-                            >
-                              {index + 1}
+            {round.game.mode === "betterball" &&
+              round.teamSummaries &&
+              round.teamSummaries.length > 0 && (
+                <Card className="golf-card border-0">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="w-5 h-5" />
+                      Betterball Team Results
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {round.teamSummaries.map((team, index) => (
+                        <div
+                          key={team.teamId}
+                          className={`p-4 rounded-lg border ${
+                            index === 0
+                              ? "border-primary bg-primary/5"
+                              : "border-border"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                                  index === 0
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-muted"
+                                }`}
+                              >
+                                {index + 1}
+                              </div>
+                              <div>
+                                <h4 className="font-semibold">
+                                  {team.teamName}
+                                </h4>
+                                <p className="text-sm text-muted-foreground">
+                                  {team.players.map((p) => p.name).join(" & ")}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <h4 className="font-semibold">{team.teamName}</h4>
-                              <p className="text-sm text-muted-foreground">
-                                {team.players.map((p) => p.name).join(" & ")}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-2xl font-bold">
-                              {team.totalPoints}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              points
+                            <div className="text-right">
+                              <div className="text-2xl font-bold">
+                                {team.totalPoints}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                points
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Export Options */}
-            <Card className="golf-card border-0">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Download className="w-5 h-5" />
-                  Export Results
-                </CardTitle>
-                <CardDescription>Download your scorecard</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button
-                  onClick={exportToPDF}
-                  variant="outline"
-                  className="w-full gap-2"
-                >
-                  <FileText className="w-4 h-4" />
-                  Print Scorecard
-                </Button>
-                <Button
-                  onClick={exportToExcel}
-                  variant="outline"
-                  className="w-full gap-2"
-                >
-                  <FileSpreadsheet className="w-4 h-4" />
-                  Export CSV
-                </Button>
-              </CardContent>
-            </Card>
-
             {/* Round Information */}
             <Card className="golf-card border-0">
               <CardHeader>
@@ -751,26 +497,30 @@ export default function Summary() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Course:</span>
                   <span className="font-medium text-right">
-                    {game.course.name}
+                    {round.game.course.name}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Date:</span>
                   <span className="font-medium">
-                    {new Date(game.startTime).toLocaleDateString()}
+                    {new Date(round.completedAt).toLocaleDateString()}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Mode:</span>
-                  <span className="font-medium capitalize">{game.mode}</span>
+                  <span className="font-medium capitalize">
+                    {round.game.mode}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Players:</span>
-                  <span className="font-medium">{game.players.length}</span>
+                  <span className="font-medium">
+                    {round.game.players.length}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Course Par:</span>
-                  <span className="font-medium">{game.course.par}</span>
+                  <span className="font-medium">{round.game.course.par}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">
@@ -795,7 +545,7 @@ export default function Summary() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {playerSummaries.map((summary, index) => (
+                  {round.playerSummaries.map((summary, index) => (
                     <div
                       key={summary.player.id}
                       className={`flex items-center gap-3 p-3 rounded-lg ${
