@@ -255,10 +255,26 @@ export default function Scoring() {
                         Par {currentHoleData.par} • Stroke Index{" "}
                         {currentHoleData.handicap}
                       </CardDescription>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Players with handicap ≥ {currentHoleData.handicap} get a
-                        stroke
-                      </p>
+                      <div className="text-sm text-muted-foreground mt-2 space-y-1">
+                        <p>Stroke distribution on this hole:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {game.players.map((player) => {
+                            const strokes = getStrokesOnHole(
+                              player.handicap,
+                              currentHoleData.handicap,
+                            );
+                            return (
+                              <span
+                                key={player.id}
+                                className="text-xs bg-muted px-2 py-1 rounded"
+                              >
+                                {player.name}:{" "}
+                                {strokes === 0 ? "No strokes" : `+${strokes}`}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
