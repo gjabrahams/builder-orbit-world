@@ -59,6 +59,24 @@ export default function Scoring() {
     }
   }, [navigate]);
 
+  // Calculate how many strokes a player gets on a hole
+  const getStrokesOnHole = (
+    playerHandicap: number,
+    holeStrokeIndex: number,
+  ) => {
+    if (playerHandicap <= 0) return 0;
+
+    const baseStrokes = Math.floor(playerHandicap / 18);
+    const extraStrokes = playerHandicap % 18;
+
+    let strokes = baseStrokes;
+    if (extraStrokes >= holeStrokeIndex) {
+      strokes += 1;
+    }
+
+    return strokes;
+  };
+
   // Calculate Stableford points based on strokes and par
   const calculatePoints = (
     strokes: number,
@@ -68,7 +86,8 @@ export default function Scoring() {
   ) => {
     if (strokes === 0) return 0;
 
-    const adjustedPar = par + (handicap >= holeHandicap ? 1 : 0);
+    const strokesReceived = getStrokesOnHole(handicap, holeHandicap);
+    const adjustedPar = par + strokesReceived;
     const diff = adjustedPar - strokes;
 
     if (diff >= 2) return 4; // Eagle or better
