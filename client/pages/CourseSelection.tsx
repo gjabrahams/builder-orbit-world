@@ -555,7 +555,7 @@ export default function CourseSelection() {
                               {holes.slice(9, 18).map((hole) => (
                                 <div
                                   key={hole.number}
-                                  className="grid grid-cols-4 gap-2 items-center p-2 border rounded"
+                                  className="grid grid-cols-3 gap-2 items-center p-2 border rounded"
                                 >
                                   <div className="font-medium">
                                     Hole {hole.number}
@@ -595,25 +595,6 @@ export default function CourseSelection() {
                                           "handicap",
                                           parseInt(e.target.value) || 1,
                                         )
-                                      }
-                                      className="h-8"
-                                    />
-                                  </div>
-                                  <div>
-                                    <Label className="text-xs">Yds</Label>
-                                    <Input
-                                      type="number"
-                                      min="50"
-                                      max="700"
-                                      value={hole.distance.men}
-                                      onChange={(e) =>
-                                        updateHole(hole.number, "distance", {
-                                          men: parseInt(e.target.value) || 350,
-                                          women: Math.round(
-                                            (parseInt(e.target.value) || 350) *
-                                              0.85,
-                                          ),
-                                        })
                                       }
                                       className="h-8"
                                     />
@@ -820,7 +801,7 @@ export default function CourseSelection() {
                           </span>
                           <span>Par {hole.par}</span>
                           <span className="text-sm text-muted-foreground">
-                            {hole.distance.men} yds
+                            S.I. {hole.handicap}
                           </span>
                         </div>
                       ))}
@@ -839,7 +820,7 @@ export default function CourseSelection() {
                           </span>
                           <span>Par {hole.par}</span>
                           <span className="text-sm text-muted-foreground">
-                            {hole.distance.men} yds
+                            S.I. {hole.handicap}
                           </span>
                         </div>
                       ))}
