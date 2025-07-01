@@ -39,6 +39,7 @@ export interface Game {
   players: Player[];
   teams?: Team[];
   mode: GameMode;
+  roundLength: 9 | 18;
   scores: Score[];
   startTime: Date;
   currentHole: number;

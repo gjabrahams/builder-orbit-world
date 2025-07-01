@@ -94,7 +94,7 @@ export default function Summary() {
           bogeys = 0,
           doubleBogeys = 0;
 
-        gameData.course.holes.forEach((hole) => {
+        gameData.course.holes.slice(0, gameData.roundLength).forEach((hole) => {
           const score = gameData.scores.find(
             (s) => s.playerId === player.id && s.holeNumber === hole.number,
           );
@@ -137,15 +137,18 @@ export default function Summary() {
       if (gameData.mode === "betterball" && gameData.teams) {
         const teamResults = gameData.teams.map((team) => {
           let totalPoints = 0;
-          gameData.course.holes.forEach((hole) => {
-            const teamHoleScores = team.players.map((player) => {
-              const score = gameData.scores.find(
-                (s) => s.playerId === player.id && s.holeNumber === hole.number,
-              );
-              return score?.points || 0;
+          gameData.course.holes
+            .slice(0, gameData.roundLength)
+            .forEach((hole) => {
+              const teamHoleScores = team.players.map((player) => {
+                const score = gameData.scores.find(
+                  (s) =>
+                    s.playerId === player.id && s.holeNumber === hole.number,
+                );
+                return score?.points || 0;
+              });
+              totalPoints += Math.max(...teamHoleScores, 0);
             });
-            totalPoints += Math.max(...teamHoleScores, 0);
-          });
 
           return {
             teamId: team.id,
@@ -191,7 +194,7 @@ export default function Summary() {
         bogeys = 0,
         doubleBogeys = 0;
 
-      gameData.course.holes.forEach((hole) => {
+      gameData.course.holes.slice(0, gameData.roundLength).forEach((hole) => {
         const score = gameData.scores.find(
           (s) => s.playerId === player.id && s.holeNumber === hole.number,
         );
@@ -241,7 +244,7 @@ export default function Summary() {
         let totalPoints = 0;
         const holeResults: { [holeNumber: number]: number } = {};
 
-        gameData.course.holes.forEach((hole) => {
+        gameData.course.holes.slice(0, gameData.roundLength).forEach((hole) => {
           const teamHoleScores = team.players.map((player) => {
             const score = gameData.scores.find(
               (s) => s.playerId === player.id && s.holeNumber === hole.number,
@@ -434,7 +437,7 @@ export default function Summary() {
               <div>
                 <h1 className="text-2xl font-bold">Round Summary</h1>
                 <p className="text-sm text-muted-foreground">
-                  {game.course.name} •{" "}
+                  {game.course.name} • {game.roundLength} holes •{" "}
                   {new Date(game.startTime).toLocaleDateString()}
                 </p>
               </div>
@@ -507,59 +510,61 @@ export default function Summary() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {game.course.holes.map((hole) => (
-                        <TableRow key={hole.number}>
-                          <TableCell className="font-medium">
-                            {hole.number}
-                          </TableCell>
-                          <TableCell>{hole.par}</TableCell>
-                          <TableCell>{hole.handicap}</TableCell>
-                          {game.players.map((player) => {
-                            const playerSummary = playerSummaries.find(
-                              (s) => s.player.id === player.id,
-                            );
-                            const holeScore =
-                              playerSummary?.holeScores[hole.number];
-                            const scoreToPar = holeScore
-                              ? holeScore.strokes - hole.par
-                              : 0;
+                      {game.course.holes
+                        .slice(0, game.roundLength)
+                        .map((hole) => (
+                          <TableRow key={hole.number}>
+                            <TableCell className="font-medium">
+                              {hole.number}
+                            </TableCell>
+                            <TableCell>{hole.par}</TableCell>
+                            <TableCell>{hole.handicap}</TableCell>
+                            {game.players.map((player) => {
+                              const playerSummary = playerSummaries.find(
+                                (s) => s.player.id === player.id,
+                              );
+                              const holeScore =
+                                playerSummary?.holeScores[hole.number];
+                              const scoreToPar = holeScore
+                                ? holeScore.strokes - hole.par
+                                : 0;
 
-                            return (
-                              <TableCell
-                                key={player.id}
-                                className="text-center"
-                              >
-                                {holeScore ? (
-                                  <div className="flex flex-col items-center">
-                                    <span
-                                      className={`font-medium ${
-                                        scoreToPar <= -2
-                                          ? "text-green-600"
-                                          : scoreToPar === -1
-                                            ? "text-blue-600"
-                                            : scoreToPar === 0
-                                              ? "text-gray-900"
-                                              : scoreToPar === 1
-                                                ? "text-orange-600"
-                                                : "text-red-600"
-                                      }`}
-                                    >
-                                      {holeScore.strokes}
+                              return (
+                                <TableCell
+                                  key={player.id}
+                                  className="text-center"
+                                >
+                                  {holeScore ? (
+                                    <div className="flex flex-col items-center">
+                                      <span
+                                        className={`font-medium ${
+                                          scoreToPar <= -2
+                                            ? "text-green-600"
+                                            : scoreToPar === -1
+                                              ? "text-blue-600"
+                                              : scoreToPar === 0
+                                                ? "text-gray-900"
+                                                : scoreToPar === 1
+                                                  ? "text-orange-600"
+                                                  : "text-red-600"
+                                        }`}
+                                      >
+                                        {holeScore.strokes}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {holeScore.points}pt
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-muted-foreground">
+                                      -
                                     </span>
-                                    <span className="text-xs text-muted-foreground">
-                                      {holeScore.points}pt
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <span className="text-muted-foreground">
-                                    -
-                                  </span>
-                                )}
-                              </TableCell>
-                            );
-                          })}
-                        </TableRow>
-                      ))}
+                                  )}
+                                </TableCell>
+                              );
+                            })}
+                          </TableRow>
+                        ))}
                       {/* Totals Row */}
                       <TableRow className="bg-muted/50 font-semibold">
                         <TableCell colSpan={3}>TOTAL</TableCell>

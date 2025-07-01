@@ -138,14 +138,14 @@ export default function Scoring() {
         ...game.scores.filter((s) => s.holeNumber !== currentHole),
         ...newScores,
       ],
-      currentHole: Math.min(currentHole + 1, game.course.holes.length),
+      currentHole: Math.min(currentHole + 1, game.roundLength),
     };
 
     setGame(updatedGame);
     localStorage.setItem("currentGame", JSON.stringify(updatedGame));
 
     // Move to next hole or finish
-    if (currentHole < game.course.holes.length) {
+    if (currentHole < game.roundLength) {
       setCurrentHole(currentHole + 1);
       // Initialize scores for next hole
       const nextHoleScores: { [playerId: string]: number } = {};
@@ -204,7 +204,7 @@ export default function Scoring() {
                   Scoring - Hole {currentHole}
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  {game.course.name} •{" "}
+                  {game.course.name} • {game.roundLength} holes •{" "}
                   {game.mode === "betterball" ? "Betterball" : "Individual"}
                 </p>
               </div>
@@ -251,11 +251,9 @@ export default function Scoring() {
                       variant="outline"
                       size="sm"
                       onClick={() =>
-                        goToHole(
-                          Math.min(game.course.holes.length, currentHole + 1),
-                        )
+                        goToHole(Math.min(game.roundLength, currentHole + 1))
                       }
-                      disabled={currentHole === game.course.holes.length}
+                      disabled={currentHole === game.roundLength}
                     >
                       <ChevronRight className="w-4 h-4" />
                     </Button>
@@ -381,7 +379,7 @@ export default function Scoring() {
                     disabled={!canSaveScores}
                     className="golf-button"
                   >
-                    {currentHole === game.course.holes.length
+                    {currentHole === game.roundLength
                       ? "Finish Round"
                       : "Next Hole"}
                   </Button>
@@ -396,7 +394,7 @@ export default function Scoring() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-9 gap-2">
-                  {game.course.holes.map((hole) => {
+                  {game.course.holes.slice(0, game.roundLength).map((hole) => {
                     const hasScores = game.players.every((player) =>
                       game.scores.some(
                         (s) =>

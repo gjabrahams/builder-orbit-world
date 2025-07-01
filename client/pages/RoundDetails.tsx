@@ -67,7 +67,7 @@ export default function RoundDetails() {
             <h2>${round.game.course.name}</h2>
             <p>${new Date(round.completedAt).toLocaleDateString()} • ${round.game.mode === "betterball" ? "Betterball" : "Individual"}</p>
           </div>
-          
+
           <table class="scorecard">
             <thead>
               <tr>
@@ -109,7 +109,7 @@ export default function RoundDetails() {
               </tr>
             </tbody>
           </table>
-          
+
           <div class="summary">
             <h3>Final Results</h3>
             ${round.playerSummaries
@@ -200,7 +200,7 @@ export default function RoundDetails() {
               <div>
                 <h1 className="text-2xl font-bold">Round Details</h1>
                 <p className="text-sm text-muted-foreground">
-                  {round.game.course.name} •{" "}
+                  {round.game.course.name} • {round.game.roundLength} holes •{" "}
                   {new Date(round.completedAt).toLocaleDateString()}
                 </p>
               </div>
@@ -275,62 +275,64 @@ export default function RoundDetails() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {round.game.course.holes.map((hole) => (
-                        <TableRow key={hole.number}>
-                          <TableCell className="font-medium">
-                            {hole.number}
-                          </TableCell>
-                          <TableCell>{hole.par}</TableCell>
-                          <TableCell>{hole.handicap}</TableCell>
-                          {round.game.players.map((player) => {
-                            const playerSummary = round.playerSummaries.find(
-                              (s) => s.player.id === player.id,
-                            );
-                            const score = round.game.scores.find(
-                              (s) =>
-                                s.playerId === player.id &&
-                                s.holeNumber === hole.number,
-                            );
-                            const scoreToPar = score
-                              ? score.strokes - hole.par
-                              : 0;
+                      {round.game.course.holes
+                        .slice(0, round.game.roundLength)
+                        .map((hole) => (
+                          <TableRow key={hole.number}>
+                            <TableCell className="font-medium">
+                              {hole.number}
+                            </TableCell>
+                            <TableCell>{hole.par}</TableCell>
+                            <TableCell>{hole.handicap}</TableCell>
+                            {round.game.players.map((player) => {
+                              const playerSummary = round.playerSummaries.find(
+                                (s) => s.player.id === player.id,
+                              );
+                              const score = round.game.scores.find(
+                                (s) =>
+                                  s.playerId === player.id &&
+                                  s.holeNumber === hole.number,
+                              );
+                              const scoreToPar = score
+                                ? score.strokes - hole.par
+                                : 0;
 
-                            return (
-                              <TableCell
-                                key={player.id}
-                                className="text-center"
-                              >
-                                {score ? (
-                                  <div className="flex flex-col items-center">
-                                    <span
-                                      className={`font-medium ${
-                                        scoreToPar <= -2
-                                          ? "text-green-600"
-                                          : scoreToPar === -1
-                                            ? "text-blue-600"
-                                            : scoreToPar === 0
-                                              ? "text-gray-900"
-                                              : scoreToPar === 1
-                                                ? "text-orange-600"
-                                                : "text-red-600"
-                                      }`}
-                                    >
-                                      {score.strokes}
+                              return (
+                                <TableCell
+                                  key={player.id}
+                                  className="text-center"
+                                >
+                                  {score ? (
+                                    <div className="flex flex-col items-center">
+                                      <span
+                                        className={`font-medium ${
+                                          scoreToPar <= -2
+                                            ? "text-green-600"
+                                            : scoreToPar === -1
+                                              ? "text-blue-600"
+                                              : scoreToPar === 0
+                                                ? "text-gray-900"
+                                                : scoreToPar === 1
+                                                  ? "text-orange-600"
+                                                  : "text-red-600"
+                                        }`}
+                                      >
+                                        {score.strokes}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {score.points}pt
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-muted-foreground">
+                                      -
                                     </span>
-                                    <span className="text-xs text-muted-foreground">
-                                      {score.points}pt
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <span className="text-muted-foreground">
-                                    -
-                                  </span>
-                                )}
-                              </TableCell>
-                            );
-                          })}
-                        </TableRow>
-                      ))}
+                                  )}
+                                </TableCell>
+                              );
+                            })}
+                          </TableRow>
+                        ))}
                       {/* Totals Row */}
                       <TableRow className="bg-muted/50 font-semibold">
                         <TableCell colSpan={3}>TOTAL</TableCell>
@@ -412,10 +414,17 @@ export default function RoundDetails() {
                       <div className="mt-3 pt-3 border-t flex justify-between text-sm">
                         <span>Score to Par:</span>
                         <span className="font-medium">
-                          {summary.totalStrokes - round.game.course.par > 0
+                          {summary.totalStrokes -
+                            round.game.course.holes
+                              .slice(0, round.game.roundLength)
+                              .reduce((sum, hole) => sum + hole.par, 0) >
+                          0
                             ? "+"
                             : ""}
-                          {summary.totalStrokes - round.game.course.par}
+                          {summary.totalStrokes -
+                            round.game.course.holes
+                              .slice(0, round.game.roundLength)
+                              .reduce((sum, hole) => sum + hole.par, 0)}
                         </span>
                       </div>
                     </div>
@@ -519,8 +528,16 @@ export default function RoundDetails() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Course Par:</span>
-                  <span className="font-medium">{round.game.course.par}</span>
+                  <span className="text-muted-foreground">Round Par:</span>
+                  <span className="font-medium">
+                    {round.game.course.holes
+                      .slice(0, round.game.roundLength)
+                      .reduce((sum, hole) => sum + hole.par, 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Holes:</span>
+                  <span className="font-medium">{round.game.roundLength}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">

@@ -34,6 +34,7 @@ export default function PlayerSetup() {
   const [course, setCourse] = useState<Course | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [gameMode, setGameMode] = useState<GameMode>("individual");
+  const [roundLength, setRoundLength] = useState<9 | 18>(18);
   const [teams, setTeams] = useState<Team[]>([]);
 
   useEffect(() => {
@@ -107,6 +108,7 @@ export default function PlayerSetup() {
       players,
       teams: gameMode === "betterball" ? teams : undefined,
       mode: gameMode,
+      roundLength,
       scores: [],
       startTime: new Date(),
       currentHole: 1,
@@ -138,7 +140,9 @@ export default function PlayerSetup() {
               </Button>
               <div>
                 <h1 className="text-2xl font-bold">Setup Players</h1>
-                <p className="text-sm text-muted-foreground">{course.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {course.name} • {roundLength} holes
+                </p>
               </div>
             </div>
             <Button
@@ -212,6 +216,57 @@ export default function PlayerSetup() {
                     </p>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Round Length Selection */}
+            <Card className="golf-card border-0">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Flag className="w-5 h-5" />
+                  Round Length
+                </CardTitle>
+                <CardDescription>Choose how many holes to play</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div
+                    className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                      roundLength === 18
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                    onClick={() => setRoundLength(18)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Flag className="w-5 h-5" />
+                      <div>
+                        <h3 className="font-medium">18 Holes</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Full round - complete golf course experience
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                      roundLength === 9
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                    onClick={() => setRoundLength(9)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Flag className="w-5 h-5" />
+                      <div>
+                        <h3 className="font-medium">9 Holes</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Quick round - perfect for shorter sessions
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 

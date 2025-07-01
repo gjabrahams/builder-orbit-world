@@ -194,7 +194,10 @@ export default function SavedRounds() {
                           </div>
                           <div className="flex items-center gap-1">
                             <Flag className="w-4 h-4" />
-                            Par {round.game.course.par}
+                            {round.game.roundLength} holes • Par{" "}
+                            {round.game.course.holes
+                              .slice(0, round.game.roundLength)
+                              .reduce((sum, hole) => sum + hole.par, 0)}
                           </div>
                         </div>
                       </div>
