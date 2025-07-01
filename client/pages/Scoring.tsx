@@ -478,9 +478,16 @@ export default function Scoring() {
                       ),
                     );
 
-                    // Check if any player gets a stroke on this hole
-                    const anyPlayerGetsStroke = game.players.some(
-                      (player) => player.handicap >= hole.handicap,
+                    // Check if any player gets strokes on this hole
+                    const playersWithStrokes = game.players.filter(
+                      (player) =>
+                        getStrokesOnHole(player.handicap, hole.handicap) > 0,
+                    );
+                    const maxStrokes = Math.max(
+                      0,
+                      ...game.players.map((player) =>
+                        getStrokesOnHole(player.handicap, hole.handicap),
+                      ),
                     );
 
                     return (
@@ -496,7 +503,8 @@ export default function Scoring() {
                         size="sm"
                         onClick={() => goToHole(hole.number)}
                         className={`aspect-square p-2 ${
-                          anyPlayerGetsStroke && currentHole !== hole.number
+                          playersWithStrokes.length > 0 &&
+                          currentHole !== hole.number
                             ? "ring-2 ring-blue-300 ring-offset-1"
                             : ""
                         }`}
@@ -506,9 +514,11 @@ export default function Scoring() {
                             {hole.number}
                           </div>
                           <div className="text-xs">Par {hole.par}</div>
-                          {anyPlayerGetsStroke && (
+                          {playersWithStrokes.length > 0 && (
                             <div className="text-xs text-blue-600">
-                              S.I. {hole.handicap}
+                              {playersWithStrokes.length === game.players.length
+                                ? `+${maxStrokes} all`
+                                : `+${maxStrokes} max`}
                             </div>
                           )}
                         </div>
