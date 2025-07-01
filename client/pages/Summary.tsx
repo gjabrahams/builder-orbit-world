@@ -774,8 +774,16 @@ export default function Summary() {
                   <span className="font-medium">{game.players.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Course Par:</span>
-                  <span className="font-medium">{game.course.par}</span>
+                  <span className="text-muted-foreground">Holes:</span>
+                  <span className="font-medium">{game.roundLength}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Round Par:</span>
+                  <span className="font-medium">
+                    {game.course.holes
+                      .slice(0, game.roundLength)
+                      .reduce((sum, hole) => sum + hole.par, 0)}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">
