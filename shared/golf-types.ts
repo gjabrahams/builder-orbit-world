@@ -16,10 +16,6 @@ export interface Hole {
   number: number;
   par: number;
   handicap: number;
-  distance: {
-    men: number;
-    women: number;
-  };
 }
 
 export interface Score {
