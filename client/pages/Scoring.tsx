@@ -233,9 +233,13 @@ export default function Scoring() {
                         Hole {currentHole}
                       </CardTitle>
                       <CardDescription className="text-lg">
-                        Par {currentHoleData.par} • S.I.{" "}
+                        Par {currentHoleData.par} • Stroke Index{" "}
                         {currentHoleData.handicap}
                       </CardDescription>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Players with handicap ≥ {currentHoleData.handicap} get a
+                        stroke
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -355,17 +359,31 @@ export default function Scoring() {
                           <div className="text-sm text-muted-foreground">
                             {playerScore === 0
                               ? "Enter strokes"
-                              : playerScore === currentHoleData.par - 2
-                                ? "Eagle!"
-                                : playerScore === currentHoleData.par - 1
-                                  ? "Birdie!"
-                                  : playerScore === currentHoleData.par
-                                    ? "Par"
-                                    : playerScore === currentHoleData.par + 1
-                                      ? "Bogey"
-                                      : playerScore === currentHoleData.par + 2
-                                        ? "Double Bogey"
-                                        : `+${playerScore - currentHoleData.par}`}
+                              : (() => {
+                                  const netScore = getsStroke
+                                    ? playerScore - 1
+                                    : playerScore;
+                                  const scoreToPar =
+                                    netScore - currentHoleData.par;
+                                  const scoreText =
+                                    scoreToPar <= -2
+                                      ? "Eagle!"
+                                      : scoreToPar === -1
+                                        ? "Birdie!"
+                                        : scoreToPar === 0
+                                          ? "Par"
+                                          : scoreToPar === 1
+                                            ? "Bogey"
+                                            : scoreToPar === 2
+                                              ? "Double Bogey"
+                                              : scoreToPar > 0
+                                                ? `+${scoreToPar}`
+                                                : `${scoreToPar}`;
+
+                                  return getsStroke
+                                    ? `${scoreText} (Net: ${netScore})`
+                                    : scoreText;
+                                })()}
                           </div>
                         </div>
                       </div>
@@ -391,6 +409,9 @@ export default function Scoring() {
             <Card className="golf-card border-0">
               <CardHeader>
                 <CardTitle>Hole Navigation</CardTitle>
+                <CardDescription>
+                  Blue outline = You get a stroke on this hole
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-9 gap-2">
@@ -401,6 +422,11 @@ export default function Scoring() {
                           s.playerId === player.id &&
                           s.holeNumber === hole.number,
                       ),
+                    );
+
+                    // Check if any player gets a stroke on this hole
+                    const anyPlayerGetsStroke = game.players.some(
+                      (player) => player.handicap >= hole.handicap,
                     );
 
                     return (
@@ -415,13 +441,22 @@ export default function Scoring() {
                         }
                         size="sm"
                         onClick={() => goToHole(hole.number)}
-                        className="aspect-square p-2"
+                        className={`aspect-square p-2 ${
+                          anyPlayerGetsStroke && currentHole !== hole.number
+                            ? "ring-2 ring-blue-300 ring-offset-1"
+                            : ""
+                        }`}
                       >
                         <div className="text-center">
                           <div className="text-xs font-medium">
                             {hole.number}
                           </div>
                           <div className="text-xs">Par {hole.par}</div>
+                          {anyPlayerGetsStroke && (
+                            <div className="text-xs text-blue-600">
+                              S.I. {hole.handicap}
+                            </div>
+                          )}
                         </div>
                       </Button>
                     );
