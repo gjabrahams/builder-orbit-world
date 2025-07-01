@@ -479,7 +479,7 @@ export default function CourseSelection() {
                             {holes.slice(0, 9).map((hole) => (
                               <div
                                 key={hole.number}
-                                className="grid grid-cols-4 gap-2 items-center p-2 border rounded"
+                                className="grid grid-cols-3 gap-2 items-center p-2 border rounded"
                               >
                                 <div className="font-medium">
                                   Hole {hole.number}
