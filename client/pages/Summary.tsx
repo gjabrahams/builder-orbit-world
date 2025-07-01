@@ -7,6 +7,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -18,30 +27,270 @@ import {
   Target,
   BarChart3,
   Home,
+  Award,
+  TrendingUp,
+  Clock,
 } from "lucide-react";
-import { Game } from "@shared/golf-types";
+import { Game, Player, Score } from "@shared/golf-types";
+
+interface PlayerSummary {
+  player: Player;
+  totalStrokes: number;
+  totalPoints: number;
+  holeScores: { [holeNumber: number]: { strokes: number; points: number } };
+  eagles: number;
+  birdies: number;
+  pars: number;
+  bogeys: number;
+  doubleBogeys: number;
+  rank: number;
+}
+
+interface TeamSummary {
+  teamId: string;
+  teamName: string;
+  players: Player[];
+  totalPoints: number;
+  holeResults: { [holeNumber: number]: number };
+}
 
 export default function Summary() {
   const navigate = useNavigate();
   const [game, setGame] = useState<Game | null>(null);
+  const [playerSummaries, setPlayerSummaries] = useState<PlayerSummary[]>([]);
+  const [teamSummaries, setTeamSummaries] = useState<TeamSummary[]>([]);
 
   useEffect(() => {
     const savedGame = localStorage.getItem("currentGame");
     if (savedGame) {
-      setGame(JSON.parse(savedGame));
+      const gameData = JSON.parse(savedGame);
+      setGame(gameData);
+      calculateSummaries(gameData);
     } else {
       navigate("/");
     }
   }, [navigate]);
 
+  const calculateSummaries = (gameData: Game) => {
+    // Calculate player summaries
+    const summaries: PlayerSummary[] = gameData.players.map((player) => {
+      let totalStrokes = 0;
+      let totalPoints = 0;
+      const holeScores: {
+        [holeNumber: number]: { strokes: number; points: number };
+      } = {};
+      let eagles = 0,
+        birdies = 0,
+        pars = 0,
+        bogeys = 0,
+        doubleBogeys = 0;
+
+      gameData.course.holes.forEach((hole) => {
+        const score = gameData.scores.find(
+          (s) => s.playerId === player.id && s.holeNumber === hole.number,
+        );
+        if (score) {
+          totalStrokes += score.strokes;
+          totalPoints += score.points;
+          holeScores[hole.number] = {
+            strokes: score.strokes,
+            points: score.points,
+          };
+
+          // Count score types
+          const scoreToPar = score.strokes - hole.par;
+          if (scoreToPar <= -2) eagles++;
+          else if (scoreToPar === -1) birdies++;
+          else if (scoreToPar === 0) pars++;
+          else if (scoreToPar === 1) bogeys++;
+          else if (scoreToPar >= 2) doubleBogeys++;
+        }
+      });
+
+      return {
+        player,
+        totalStrokes,
+        totalPoints,
+        holeScores,
+        eagles,
+        birdies,
+        pars,
+        bogeys,
+        doubleBogeys,
+        rank: 0, // Will be set after sorting
+      };
+    });
+
+    // Sort by points and assign ranks
+    summaries.sort((a, b) => b.totalPoints - a.totalPoints);
+    summaries.forEach((summary, index) => {
+      summary.rank = index + 1;
+    });
+
+    setPlayerSummaries(summaries);
+
+    // Calculate team summaries for betterball
+    if (gameData.mode === "betterball" && gameData.teams) {
+      const teamResults: TeamSummary[] = gameData.teams.map((team) => {
+        let totalPoints = 0;
+        const holeResults: { [holeNumber: number]: number } = {};
+
+        gameData.course.holes.forEach((hole) => {
+          const teamHoleScores = team.players.map((player) => {
+            const score = gameData.scores.find(
+              (s) => s.playerId === player.id && s.holeNumber === hole.number,
+            );
+            return score?.points || 0;
+          });
+          const bestHoleScore = Math.max(...teamHoleScores, 0);
+          totalPoints += bestHoleScore;
+          holeResults[hole.number] = bestHoleScore;
+        });
+
+        return {
+          teamId: team.id,
+          teamName: team.name,
+          players: team.players,
+          totalPoints,
+          holeResults,
+        };
+      });
+
+      teamResults.sort((a, b) => b.totalPoints - a.totalPoints);
+      setTeamSummaries(teamResults);
+    }
+  };
+
   const exportToPDF = () => {
-    // PDF export functionality to be implemented
-    console.log("Exporting to PDF...");
+    if (!game) return;
+
+    // Create printable content
+    const printContent = `
+      <html>
+        <head>
+          <title>${game.course.name} - ${new Date(game.startTime).toLocaleDateString()}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .scorecard { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            .scorecard th, .scorecard td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+            .scorecard th { background-color: #f5f5f5; }
+            .summary { margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>GolfScore Pro</h1>
+            <h2>${game.course.name}</h2>
+            <p>${new Date(game.startTime).toLocaleDateString()} • ${game.mode === "betterball" ? "Betterball" : "Individual"}</p>
+          </div>
+
+          <table class="scorecard">
+            <thead>
+              <tr>
+                <th>Hole</th>
+                <th>Par</th>
+                <th>S.I.</th>
+                ${game.players.map((p) => `<th>${p.name}</th>`).join("")}
+              </tr>
+            </thead>
+            <tbody>
+              ${game.course.holes
+                .map(
+                  (hole) => `
+                <tr>
+                  <td>${hole.number}</td>
+                  <td>${hole.par}</td>
+                  <td>${hole.handicap}</td>
+                  ${game.players
+                    .map((player) => {
+                      const score = game.scores.find(
+                        (s) =>
+                          s.playerId === player.id &&
+                          s.holeNumber === hole.number,
+                      );
+                      return `<td>${score?.strokes || "-"}</td>`;
+                    })
+                    .join("")}
+                </tr>
+              `,
+                )
+                .join("")}
+              <tr style="background-color: #f9f9f9; font-weight: bold;">
+                <td colspan="3">TOTAL</td>
+                ${playerSummaries.map((summary) => `<td>${summary.totalStrokes}</td>`).join("")}
+              </tr>
+              <tr style="background-color: #e8f5e8; font-weight: bold;">
+                <td colspan="3">POINTS</td>
+                ${playerSummaries.map((summary) => `<td>${summary.totalPoints}</td>`).join("")}
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="summary">
+            <h3>Final Results</h3>
+            ${playerSummaries
+              .map(
+                (summary, index) => `
+              <p>${index + 1}. ${summary.player.name} - ${summary.totalPoints} points (${summary.totalStrokes} strokes)</p>
+            `,
+              )
+              .join("")}
+          </div>
+        </body>
+      </html>
+    `;
+
+    // Open print dialog
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+    }
   };
 
   const exportToExcel = () => {
-    // Excel export functionality to be implemented
-    console.log("Exporting to Excel...");
+    if (!game) return;
+
+    // Create CSV content
+    let csvContent = `Course,${game.course.name}\n`;
+    csvContent += `Date,${new Date(game.startTime).toLocaleDateString()}\n`;
+    csvContent += `Mode,${game.mode === "betterball" ? "Betterball" : "Individual"}\n\n`;
+
+    // Headers
+    csvContent += `Hole,Par,S.I.,${game.players.map((p) => p.name).join(",")}\n`;
+
+    // Hole data
+    game.course.holes.forEach((hole) => {
+      const holeData = [
+        hole.number,
+        hole.par,
+        hole.handicap,
+        ...game.players.map((player) => {
+          const score = game.scores.find(
+            (s) => s.playerId === player.id && s.holeNumber === hole.number,
+          );
+          return score?.strokes || "";
+        }),
+      ];
+      csvContent += `${holeData.join(",")}\n`;
+    });
+
+    // Totals
+    csvContent += `TOTAL,,,${playerSummaries.map((s) => s.totalStrokes).join(",")}\n`;
+    csvContent += `POINTS,,,${playerSummaries.map((s) => s.totalPoints).join(",")}\n`;
+
+    // Download CSV
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `golf-scorecard-${game.course.name.replace(/\s+/g, "-")}-${new Date(game.startTime).toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   };
 
   const startNewRound = () => {
@@ -53,6 +302,12 @@ export default function Summary() {
   if (!game) {
     return <div>Loading...</div>;
   }
+
+  const winner = playerSummaries[0];
+  const roundDuration =
+    new Date().getTime() - new Date(game.startTime).getTime();
+  const hours = Math.floor(roundDuration / (1000 * 60 * 60));
+  const minutes = Math.floor((roundDuration % (1000 * 60 * 60)) / (1000 * 60));
 
   return (
     <div className="min-h-screen golf-gradient golf-gradient-dark">
@@ -88,91 +343,257 @@ export default function Summary() {
 
       <main className="container mx-auto px-4 py-8">
         {/* Winner Announcement */}
-        <Card className="golf-card border-0 mb-8 text-center">
-          <CardHeader>
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trophy className="w-8 h-8 text-primary" />
-            </div>
-            <CardTitle className="text-3xl">Round Complete!</CardTitle>
-            <CardDescription className="text-lg">
-              Great round at {game.course.name}
-            </CardDescription>
-          </CardHeader>
-        </Card>
+        {winner && (
+          <Card className="golf-card border-0 mb-8 text-center">
+            <CardHeader>
+              <div className="w-20 h-20 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <Trophy className="w-10 h-10 text-white" />
+              </div>
+              <CardTitle className="text-3xl mb-2">
+                🏆 Congratulations!
+              </CardTitle>
+              <CardDescription className="text-xl font-medium">
+                {winner.player.name} wins with {winner.totalPoints} points
+              </CardDescription>
+              <p className="text-muted-foreground mt-2">
+                {winner.totalStrokes} total strokes • {winner.birdies} birdies •{" "}
+                {winner.eagles} eagles
+              </p>
+            </CardHeader>
+          </Card>
+        )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Final Scores */}
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          {/* Detailed Scorecard */}
+          <div className="xl:col-span-3 space-y-6">
             <Card className="golf-card border-0">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="w-5 h-5" />
-                  Final Scores
+                  Complete Scorecard
                 </CardTitle>
                 <CardDescription>
-                  Complete scorecard and results
+                  Hole-by-hole results for all players
                 </CardDescription>
               </CardHeader>
-              <CardContent className="text-center py-12">
-                <Target className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
-                <h3 className="text-xl font-semibold mb-2">
-                  Detailed Scorecard
-                </h3>
-                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                  The comprehensive final summary with hole-by-hole scores,
-                  cumulative totals, and performance statistics will be
-                  displayed here.
-                </p>
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    <strong>Summary features to include:</strong>
-                  </p>
-                  <ul className="text-sm text-muted-foreground space-y-1 max-w-sm mx-auto">
-                    <li>• Hole-by-hole scorecard</li>
-                    <li>• Total strokes and points</li>
-                    <li>• Handicap-adjusted scores</li>
-                    <li>• Best holes and statistics</li>
-                    <li>• Team results (if betterball)</li>
-                  </ul>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-12">Hole</TableHead>
+                        <TableHead className="w-12">Par</TableHead>
+                        <TableHead className="w-12">S.I.</TableHead>
+                        {game.players.map((player) => (
+                          <TableHead key={player.id} className="text-center">
+                            {player.name}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {game.course.holes.map((hole) => (
+                        <TableRow key={hole.number}>
+                          <TableCell className="font-medium">
+                            {hole.number}
+                          </TableCell>
+                          <TableCell>{hole.par}</TableCell>
+                          <TableCell>{hole.handicap}</TableCell>
+                          {game.players.map((player) => {
+                            const playerSummary = playerSummaries.find(
+                              (s) => s.player.id === player.id,
+                            );
+                            const holeScore =
+                              playerSummary?.holeScores[hole.number];
+                            const scoreToPar = holeScore
+                              ? holeScore.strokes - hole.par
+                              : 0;
+
+                            return (
+                              <TableCell
+                                key={player.id}
+                                className="text-center"
+                              >
+                                {holeScore ? (
+                                  <div className="flex flex-col items-center">
+                                    <span
+                                      className={`font-medium ${
+                                        scoreToPar <= -2
+                                          ? "text-green-600"
+                                          : scoreToPar === -1
+                                            ? "text-blue-600"
+                                            : scoreToPar === 0
+                                              ? "text-gray-900"
+                                              : scoreToPar === 1
+                                                ? "text-orange-600"
+                                                : "text-red-600"
+                                      }`}
+                                    >
+                                      {holeScore.strokes}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {holeScore.points}pt
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground">
+                                    -
+                                  </span>
+                                )}
+                              </TableCell>
+                            );
+                          })}
+                        </TableRow>
+                      ))}
+                      {/* Totals Row */}
+                      <TableRow className="bg-muted/50 font-semibold">
+                        <TableCell colSpan={3}>TOTAL</TableCell>
+                        {playerSummaries.map((summary) => (
+                          <TableCell
+                            key={summary.player.id}
+                            className="text-center"
+                          >
+                            <div className="flex flex-col items-center">
+                              <span>{summary.totalStrokes}</span>
+                              <span className="text-sm text-primary font-bold">
+                                {summary.totalPoints} pts
+                              </span>
+                            </div>
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    </TableBody>
+                  </Table>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Player Rankings */}
+            {/* Player Statistics */}
             <Card className="golf-card border-0">
               <CardHeader>
-                <CardTitle>Player Rankings</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Performance Statistics
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {game.players.map((player, index) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {playerSummaries.map((summary) => (
                     <div
-                      key={player.id}
-                      className="flex items-center gap-4 p-4 bg-muted rounded-lg"
+                      key={summary.player.id}
+                      className="p-4 border border-border rounded-lg"
                     >
-                      <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold">
-                        {index + 1}
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold">{summary.player.name}</h4>
+                        <Badge
+                          variant={summary.rank === 1 ? "default" : "secondary"}
+                        >
+                          #{summary.rank}
+                        </Badge>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-medium">{player.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Handicap: {player.handicap}
-                        </p>
+                      <div className="grid grid-cols-5 gap-2 text-center text-sm">
+                        <div>
+                          <div className="text-green-600 font-semibold">
+                            {summary.eagles}
+                          </div>
+                          <div className="text-muted-foreground">Eagles</div>
+                        </div>
+                        <div>
+                          <div className="text-blue-600 font-semibold">
+                            {summary.birdies}
+                          </div>
+                          <div className="text-muted-foreground">Birdies</div>
+                        </div>
+                        <div>
+                          <div className="text-gray-900 font-semibold">
+                            {summary.pars}
+                          </div>
+                          <div className="text-muted-foreground">Pars</div>
+                        </div>
+                        <div>
+                          <div className="text-orange-600 font-semibold">
+                            {summary.bogeys}
+                          </div>
+                          <div className="text-muted-foreground">Bogeys</div>
+                        </div>
+                        <div>
+                          <div className="text-red-600 font-semibold">
+                            {summary.doubleBogeys}
+                          </div>
+                          <div className="text-muted-foreground">Double+</div>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-lg">Par</p>
-                        <p className="text-sm text-muted-foreground">
-                          36 points
-                        </p>
+                      <div className="mt-3 pt-3 border-t flex justify-between text-sm">
+                        <span>Score to Par:</span>
+                        <span className="font-medium">
+                          {summary.totalStrokes - game.course.par > 0
+                            ? "+"
+                            : ""}
+                          {summary.totalStrokes - game.course.par}
+                        </span>
                       </div>
                     </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
+
+            {/* Team Results */}
+            {game.mode === "betterball" && teamSummaries.length > 0 && (
+              <Card className="golf-card border-0">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Betterball Team Results
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {teamSummaries.map((team, index) => (
+                      <div
+                        key={team.teamId}
+                        className={`p-4 rounded-lg border ${
+                          index === 0
+                            ? "border-primary bg-primary/5"
+                            : "border-border"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                                index === 0
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted"
+                              }`}
+                            >
+                              {index + 1}
+                            </div>
+                            <div>
+                              <h4 className="font-semibold">{team.teamName}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {team.players.map((p) => p.name).join(" & ")}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold">
+                              {team.totalPoints}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              points
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
-          {/* Actions & Export */}
+          {/* Sidebar */}
           <div className="space-y-6">
             {/* Export Options */}
             <Card className="golf-card border-0">
@@ -181,9 +602,7 @@ export default function Summary() {
                   <Download className="w-5 h-5" />
                   Export Results
                 </CardTitle>
-                <CardDescription>
-                  Download your scorecard in different formats
-                </CardDescription>
+                <CardDescription>Download your scorecard</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button
@@ -192,7 +611,7 @@ export default function Summary() {
                   className="w-full gap-2"
                 >
                   <FileText className="w-4 h-4" />
-                  Export as PDF
+                  Print Scorecard
                 </Button>
                 <Button
                   onClick={exportToExcel}
@@ -200,69 +619,97 @@ export default function Summary() {
                   className="w-full gap-2"
                 >
                   <FileSpreadsheet className="w-4 h-4" />
-                  Export as Excel
+                  Export CSV
                 </Button>
               </CardContent>
             </Card>
 
-            {/* Team Results */}
-            {game.mode === "betterball" && game.teams && (
-              <Card className="golf-card border-0">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="w-5 h-5" />
-                    Team Results
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {game.teams.map((team, index) => (
-                      <div
-                        key={team.id}
-                        className="p-4 border border-primary/20 rounded-lg bg-primary/5"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-bold">
-                              {index + 1}
-                            </div>
-                            <p className="font-medium">{team.name}</p>
-                          </div>
-                          <p className="font-semibold">36 pts</p>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {team.players.map((p) => p.name).join(" & ")}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Round Statistics */}
+            {/* Round Information */}
             <Card className="golf-card border-0">
               <CardHeader>
-                <CardTitle>Round Statistics</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="w-5 h-5" />
+                  Round Details
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Course Par:</span>
-                  <span className="font-medium">{game.course.par}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total Holes:</span>
-                  <span className="font-medium">
-                    {game.course.holes.length}
+                  <span className="text-muted-foreground">Course:</span>
+                  <span className="font-medium text-right">
+                    {game.course.name}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Game Mode:</span>
+                  <span className="text-muted-foreground">Date:</span>
+                  <span className="font-medium">
+                    {new Date(game.startTime).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Mode:</span>
                   <span className="font-medium capitalize">{game.mode}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Players:</span>
                   <span className="font-medium">{game.players.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Course Par:</span>
+                  <span className="font-medium">{game.course.par}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    <Clock className="w-4 h-4 inline mr-1" />
+                    Duration:
+                  </span>
+                  <span className="font-medium">
+                    {hours > 0 ? `${hours}h ` : ""}
+                    {minutes}m
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Final Rankings */}
+            <Card className="golf-card border-0">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5" />
+                  Final Rankings
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {playerSummaries.map((summary, index) => (
+                    <div
+                      key={summary.player.id}
+                      className={`flex items-center gap-3 p-3 rounded-lg ${
+                        index === 0
+                          ? "bg-primary/10 border border-primary/20"
+                          : "bg-muted"
+                      }`}
+                    >
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                          index === 0
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted-foreground/20"
+                        }`}
+                      >
+                        {index + 1}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium">{summary.player.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          HC: {summary.player.handicap}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold">{summary.totalPoints}</p>
+                        <p className="text-xs text-muted-foreground">points</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
