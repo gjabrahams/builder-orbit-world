@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Flag, Ruler, Plus } from "lucide-react";
+import { ArrowLeft, MapPin, Flag, Ruler, Plus, Search } from "lucide-react";
 import { Course, Hole } from "@shared/golf-types";
 
 // Sample courses data
@@ -98,6 +98,7 @@ export default function CourseSelection() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [customCourses, setCustomCourses] = useState<Course[]>([]);
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [customCourse, setCustomCourse] = useState({
     name: "",
     location: "",
@@ -150,6 +151,14 @@ export default function CourseSelection() {
     setHoles([]);
   };
 
+  // Filter courses based on search query
+  const allCourses = [...sampleCourses, ...customCourses];
+  const filteredCourses = allCourses.filter(
+    (course) =>
+      course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      course.location.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
   const handleContinue = () => {
     if (selectedCourse) {
       // Store selected course in localStorage for now
@@ -190,7 +199,7 @@ export default function CourseSelection() {
       {/* Course Selection */}
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-3xl font-bold mb-2">Choose Your Course</h2>
               <p className="text-muted-foreground">
@@ -198,11 +207,24 @@ export default function CourseSelection() {
                 detailed hole information and par scoring.
               </p>
             </div>
+          </div>
+
+          {/* Search and Actions Bar */}
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Search courses by name or location..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
             <Dialog open={isCreatingCourse} onOpenChange={setIsCreatingCourse}>
               <DialogTrigger asChild>
                 <Button
                   variant="outline"
-                  className="gap-2"
+                  className="gap-2 whitespace-nowrap"
                   onClick={() => {
                     setIsCreatingCourse(true);
                     initializeHoles(18);
@@ -495,98 +517,142 @@ export default function CourseSelection() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {[...sampleCourses, ...customCourses].map((course) => {
-            const totalDistance = course.holes.reduce(
-              (sum, hole) => sum + hole.distance.men,
-              0,
-            );
-            const isSelected = selectedCourse?.id === course.id;
-            const isCustom = course.id.startsWith("custom-");
+        {/* Search Results */}
+        {searchQuery && (
+          <div className="mb-4">
+            <p className="text-sm text-muted-foreground">
+              {filteredCourses.length === 0
+                ? `No courses found for "${searchQuery}"`
+                : `Found ${filteredCourses.length} course${filteredCourses.length !== 1 ? "s" : ""} for "${searchQuery}"`}
+            </p>
+          </div>
+        )}
 
-            return (
-              <Card
-                key={course.id}
-                className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-                  isSelected
-                    ? "ring-2 ring-primary bg-primary/5"
-                    : "golf-card border-0"
-                }`}
-                onClick={() => setSelectedCourse(course)}
+        {filteredCourses.length === 0 && searchQuery ? (
+          /* No Results Found */
+          <Card className="golf-card border-0 text-center py-12">
+            <CardHeader>
+              <Search className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+              <CardTitle>No courses found</CardTitle>
+              <CardDescription>
+                We couldn't find any courses matching "{searchQuery}". Would you
+                like to create a custom course instead?
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => {
+                  setCustomCourse({
+                    name: searchQuery,
+                    location: "",
+                    holes: 18,
+                  });
+                  setIsCreatingCourse(true);
+                  initializeHoles(18);
+                }}
+                className="golf-button gap-2"
               >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-xl mb-2">
-                        {course.name}
-                      </CardTitle>
-                      <CardDescription className="flex items-center gap-2 text-muted-foreground">
-                        <MapPin className="w-4 h-4" />
-                        {course.location}
-                        {isCustom && (
-                          <Badge variant="secondary" className="ml-2">
-                            Custom
-                          </Badge>
-                        )}
-                      </CardDescription>
-                    </div>
-                    {isSelected && (
-                      <Badge className="bg-primary text-primary-foreground">
-                        Selected
-                      </Badge>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mb-1">
-                        <Flag className="w-4 h-4" />
-                        Holes
-                      </div>
-                      <div className="text-lg font-semibold">
-                        {course.holes.length}
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mb-1">
-                        <Flag className="w-4 h-4" />
-                        Par
-                      </div>
-                      <div className="text-lg font-semibold">{course.par}</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mb-1">
-                        <Ruler className="w-4 h-4" />
-                        Distance
-                      </div>
-                      <div className="text-lg font-semibold">
-                        {Math.round(totalDistance / 1000).toFixed(1)}k yds
-                      </div>
-                    </div>
-                  </div>
+                <Plus className="w-4 h-4" />
+                Create "{searchQuery}" Course
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {filteredCourses.map((course) => {
+              const totalDistance = course.holes.reduce(
+                (sum, hole) => sum + hole.distance.men,
+                0,
+              );
+              const isSelected = selectedCourse?.id === course.id;
+              const isCustom = course.id.startsWith("custom-");
 
-                  <div className="border-t pt-4">
-                    <h4 className="font-medium mb-2">Course Preview</h4>
-                    <div className="grid grid-cols-9 gap-1">
-                      {course.holes.slice(0, 9).map((hole) => (
-                        <div
-                          key={hole.number}
-                          className="text-xs text-center p-1 bg-muted rounded"
-                        >
-                          <div className="font-medium">{hole.number}</div>
-                          <div className="text-muted-foreground">
-                            Par {hole.par}
-                          </div>
-                        </div>
-                      ))}
+              return (
+                <Card
+                  key={course.id}
+                  className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
+                    isSelected
+                      ? "ring-2 ring-primary bg-primary/5"
+                      : "golf-card border-0"
+                  }`}
+                  onClick={() => setSelectedCourse(course)}
+                >
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="text-xl mb-2">
+                          {course.name}
+                        </CardTitle>
+                        <CardDescription className="flex items-center gap-2 text-muted-foreground">
+                          <MapPin className="w-4 h-4" />
+                          {course.location}
+                          {isCustom && (
+                            <Badge variant="secondary" className="ml-2">
+                              Custom
+                            </Badge>
+                          )}
+                        </CardDescription>
+                      </div>
+                      {isSelected && (
+                        <Badge className="bg-primary text-primary-foreground">
+                          Selected
+                        </Badge>
+                      )}
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mb-1">
+                          <Flag className="w-4 h-4" />
+                          Holes
+                        </div>
+                        <div className="text-lg font-semibold">
+                          {course.holes.length}
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mb-1">
+                          <Flag className="w-4 h-4" />
+                          Par
+                        </div>
+                        <div className="text-lg font-semibold">
+                          {course.par}
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mb-1">
+                          <Ruler className="w-4 h-4" />
+                          Distance
+                        </div>
+                        <div className="text-lg font-semibold">
+                          {Math.round(totalDistance / 1000).toFixed(1)}k yds
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-4">
+                      <h4 className="font-medium mb-2">Course Preview</h4>
+                      <div className="grid grid-cols-9 gap-1">
+                        {course.holes.slice(0, 9).map((hole) => (
+                          <div
+                            key={hole.number}
+                            className="text-xs text-center p-1 bg-muted rounded"
+                          >
+                            <div className="font-medium">{hole.number}</div>
+                            <div className="text-muted-foreground">
+                              Par {hole.par}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
 
         {selectedCourse && (
           <div className="mt-8">
