@@ -133,10 +133,11 @@ export default function Index() {
                 Start Your Round
               </Button>
               <Button
+                onClick={() => navigate("/saved-rounds")}
                 variant="outline"
                 className="border-primary text-primary hover:bg-primary/10"
               >
-                Learn More
+                View Saved Rounds
               </Button>
             </div>
           </CardContent>
