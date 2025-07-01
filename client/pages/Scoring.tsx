@@ -287,8 +287,10 @@ export default function Scoring() {
                         )
                       : 0;
                   const total = getPlayerTotal(player.id);
-                  const getsStroke =
-                    player.handicap >= currentHoleData.handicap;
+                  const strokesOnHole = getStrokesOnHole(
+                    player.handicap,
+                    currentHoleData.handicap,
+                  );
 
                   return (
                     <div
@@ -299,21 +301,23 @@ export default function Scoring() {
                         <div>
                           <div className="flex items-center gap-2 mb-1">
                             <h4 className="font-medium">{player.name}</h4>
-                            {getsStroke && (
+                            {strokesOnHole > 0 && (
                               <Badge
                                 variant="secondary"
                                 className="text-xs bg-blue-100 text-blue-800 border-blue-200"
                               >
-                                +1 Stroke
+                                +{strokesOnHole} Stroke
+                                {strokesOnHole !== 1 ? "s" : ""}
                               </Badge>
                             )}
                           </div>
                           <p className="text-sm text-muted-foreground">
                             Handicap: {player.handicap} • Total: {total.strokes}{" "}
                             strokes, {total.points} points
-                            {getsStroke && (
+                            {strokesOnHole > 0 && (
                               <span className="ml-2 text-blue-600">
-                                • Gets stroke on this hole
+                                • Gets {strokesOnHole} stroke
+                                {strokesOnHole !== 1 ? "s" : ""} on this hole
                               </span>
                             )}
                           </p>
@@ -427,7 +431,7 @@ export default function Scoring() {
               <CardHeader>
                 <CardTitle>Hole Navigation</CardTitle>
                 <CardDescription>
-                  Blue outline = You get a stroke on this hole
+                  Blue outline = Players get strokes on this hole
                 </CardDescription>
               </CardHeader>
               <CardContent>
