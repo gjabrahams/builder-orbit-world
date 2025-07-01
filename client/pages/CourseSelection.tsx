@@ -8,9 +8,26 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Flag, Ruler } from "lucide-react";
-import { Course } from "@shared/golf-types";
+import { ArrowLeft, MapPin, Flag, Ruler, Plus } from "lucide-react";
+import { Course, Hole } from "@shared/golf-types";
 
 // Sample courses data
 const sampleCourses: Course[] = [
@@ -79,6 +96,14 @@ const sampleCourses: Course[] = [
 export default function CourseSelection() {
   const navigate = useNavigate();
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [customCourses, setCustomCourses] = useState<Course[]>([]);
+  const [isCreatingCourse, setIsCreatingCourse] = useState(false);
+  const [customCourse, setCustomCourse] = useState({
+    name: "",
+    location: "",
+    holes: 18,
+  });
+  const [holes, setHoles] = useState<Hole[]>([]);
 
   const handleContinue = () => {
     if (selectedCourse) {
