@@ -285,10 +285,6 @@ export default function CourseSelection() {
       number: i + 1,
       par: 4,
       handicap: i + 1,
-      distance: {
-        men: 350,
-        women: 300,
-      },
     }));
     setHoles(newHoles);
   };
@@ -631,25 +627,13 @@ export default function CourseSelection() {
 
                       {/* Course Summary */}
                       <div className="mt-4 p-4 bg-muted rounded-lg">
-                        <div className="grid grid-cols-3 gap-4 text-center">
+                        <div className="grid grid-cols-2 gap-4 text-center">
                           <div>
                             <div className="text-sm text-muted-foreground">
                               Total Par
                             </div>
                             <div className="text-xl font-bold">
                               {holes.reduce((sum, hole) => sum + hole.par, 0)}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-sm text-muted-foreground">
-                              Total Distance
-                            </div>
-                            <div className="text-xl font-bold">
-                              {holes.reduce(
-                                (sum, hole) => sum + hole.distance.men,
-                                0,
-                              )}{" "}
-                              yds
                             </div>
                           </div>
                           <div>
@@ -734,10 +718,6 @@ export default function CourseSelection() {
         ) : (
           <div className="space-y-3">
             {filteredCourses.map((course) => {
-              const totalDistance = course.holes.reduce(
-                (sum, hole) => sum + hole.distance.men,
-                0,
-              );
               const isSelected = selectedCourse?.id === course.id;
               const isCustom = course.id.startsWith("custom-");
 
@@ -766,7 +746,7 @@ export default function CourseSelection() {
                         <MapPin className="w-4 h-4" />
                         <span>{course.location}</span>
                       </div>
-                      <div className="grid grid-cols-3 gap-6 max-w-md">
+                      <div className="grid grid-cols-2 gap-6 max-w-md">
                         <div className="flex items-center gap-2">
                           <Flag className="w-4 h-4 text-muted-foreground" />
                           <div>
@@ -785,17 +765,6 @@ export default function CourseSelection() {
                               Par
                             </div>
                             <div className="font-medium">{course.par}</div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Ruler className="w-4 h-4 text-muted-foreground" />
-                          <div>
-                            <div className="text-sm text-muted-foreground">
-                              Distance
-                            </div>
-                            <div className="font-medium">
-                              {Math.round(totalDistance / 1000).toFixed(1)}k yds
-                            </div>
                           </div>
                         </div>
                       </div>

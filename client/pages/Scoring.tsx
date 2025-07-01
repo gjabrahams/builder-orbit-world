@@ -233,8 +233,7 @@ export default function Scoring() {
                         Hole {currentHole}
                       </CardTitle>
                       <CardDescription className="text-lg">
-                        Par {currentHoleData.par} •{" "}
-                        {currentHoleData.distance.men} yards • S.I.{" "}
+                        Par {currentHoleData.par} • S.I.{" "}
                         {currentHoleData.handicap}
                       </CardDescription>
                     </div>
