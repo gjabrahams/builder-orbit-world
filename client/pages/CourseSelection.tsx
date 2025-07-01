@@ -105,6 +105,51 @@ export default function CourseSelection() {
   });
   const [holes, setHoles] = useState<Hole[]>([]);
 
+  const initializeHoles = (numHoles: number) => {
+    const newHoles: Hole[] = Array.from({ length: numHoles }, (_, i) => ({
+      number: i + 1,
+      par: 4,
+      handicap: i + 1,
+      distance: {
+        men: 350,
+        women: 300,
+      },
+    }));
+    setHoles(newHoles);
+  };
+
+  const updateHole = (holeNumber: number, field: keyof Hole, value: any) => {
+    setHoles(
+      holes.map((hole) =>
+        hole.number === holeNumber ? { ...hole, [field]: value } : hole,
+      ),
+    );
+  };
+
+  const createCustomCourse = () => {
+    if (
+      !customCourse.name.trim() ||
+      !customCourse.location.trim() ||
+      holes.length === 0
+    ) {
+      return;
+    }
+
+    const newCourse: Course = {
+      id: `custom-${Date.now()}`,
+      name: customCourse.name,
+      location: customCourse.location,
+      par: holes.reduce((sum, hole) => sum + hole.par, 0),
+      holes: holes,
+    };
+
+    setCustomCourses([...customCourses, newCourse]);
+    setSelectedCourse(newCourse);
+    setIsCreatingCourse(false);
+    setCustomCourse({ name: "", location: "", holes: 18 });
+    setHoles([]);
+  };
+
   const handleContinue = () => {
     if (selectedCourse) {
       // Store selected course in localStorage for now
