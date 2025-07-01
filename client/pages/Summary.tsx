@@ -646,10 +646,17 @@ export default function Summary() {
                       <div className="mt-3 pt-3 border-t flex justify-between text-sm">
                         <span>Score to Par:</span>
                         <span className="font-medium">
-                          {summary.totalStrokes - game.course.par > 0
+                          {summary.totalStrokes -
+                            game.course.holes
+                              .slice(0, game.roundLength)
+                              .reduce((sum, hole) => sum + hole.par, 0) >
+                          0
                             ? "+"
                             : ""}
-                          {summary.totalStrokes - game.course.par}
+                          {summary.totalStrokes -
+                            game.course.holes
+                              .slice(0, game.roundLength)
+                              .reduce((sum, hole) => sum + hole.par, 0)}
                         </span>
                       </div>
                     </div>
