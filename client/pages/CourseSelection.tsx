@@ -523,25 +523,6 @@ export default function CourseSelection() {
                                     className="h-8"
                                   />
                                 </div>
-                                <div>
-                                  <Label className="text-xs">Yds</Label>
-                                  <Input
-                                    type="number"
-                                    min="50"
-                                    max="700"
-                                    value={hole.distance.men}
-                                    onChange={(e) =>
-                                      updateHole(hole.number, "distance", {
-                                        men: parseInt(e.target.value) || 350,
-                                        women: Math.round(
-                                          (parseInt(e.target.value) || 350) *
-                                            0.85,
-                                        ),
-                                      })
-                                    }
-                                    className="h-8"
-                                  />
-                                </div>
                               </div>
                             ))}
                           </div>
