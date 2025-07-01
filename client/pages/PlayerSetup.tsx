@@ -26,6 +26,7 @@ import {
   Users,
   Trophy,
   UserCheck,
+  Flag,
 } from "lucide-react";
 import { Player, Course, GameMode, Game, Team } from "@shared/golf-types";
 
