@@ -400,9 +400,7 @@ export default function Scoring() {
                             {playerScore === 0
                               ? "Enter strokes"
                               : (() => {
-                                  const netScore = getsStroke
-                                    ? playerScore - 1
-                                    : playerScore;
+                                  const netScore = playerScore - strokesOnHole;
                                   const scoreToPar =
                                     netScore - currentHoleData.par;
                                   const scoreText =
@@ -420,7 +418,7 @@ export default function Scoring() {
                                                 ? `+${scoreToPar}`
                                                 : `${scoreToPar}`;
 
-                                  return getsStroke
+                                  return strokesOnHole > 0
                                     ? `${scoreText} (Net: ${netScore})`
                                     : scoreText;
                                 })()}
