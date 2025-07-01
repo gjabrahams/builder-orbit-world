@@ -190,11 +190,309 @@ export default function CourseSelection() {
       {/* Course Selection */}
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">Choose Your Course</h2>
-          <p className="text-muted-foreground">
-            Select a golf course to start your round. Each course includes
-            detailed hole information and par scoring.
-          </p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-3xl font-bold mb-2">Choose Your Course</h2>
+              <p className="text-muted-foreground">
+                Select a golf course to start your round. Each course includes
+                detailed hole information and par scoring.
+              </p>
+            </div>
+            <Dialog open={isCreatingCourse} onOpenChange={setIsCreatingCourse}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => {
+                    setIsCreatingCourse(true);
+                    initializeHoles(18);
+                  }}
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Custom Course
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Create Custom Course</DialogTitle>
+                  <DialogDescription>
+                    Design your own golf course with custom par and stroke index
+                    settings.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-6">
+                  {/* Course Details */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="course-name">Course Name</Label>
+                      <Input
+                        id="course-name"
+                        value={customCourse.name}
+                        onChange={(e) =>
+                          setCustomCourse({
+                            ...customCourse,
+                            name: e.target.value,
+                          })
+                        }
+                        placeholder="Enter course name"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="course-location">Location</Label>
+                      <Input
+                        id="course-location"
+                        value={customCourse.location}
+                        onChange={(e) =>
+                          setCustomCourse({
+                            ...customCourse,
+                            location: e.target.value,
+                          })
+                        }
+                        placeholder="City, State/Country"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="num-holes">Number of Holes</Label>
+                      <Select
+                        value={customCourse.holes.toString()}
+                        onValueChange={(value) => {
+                          const numHoles = parseInt(value);
+                          setCustomCourse({ ...customCourse, holes: numHoles });
+                          initializeHoles(numHoles);
+                        }}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="9">9 Holes</SelectItem>
+                          <SelectItem value="18">18 Holes</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Holes Setup */}
+                  {holes.length > 0 && (
+                    <div>
+                      <h4 className="font-medium mb-4">Hole Configuration</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Front Nine */}
+                        <div>
+                          <h5 className="font-medium mb-3">Front Nine</h5>
+                          <div className="space-y-3">
+                            {holes.slice(0, 9).map((hole) => (
+                              <div
+                                key={hole.number}
+                                className="grid grid-cols-4 gap-2 items-center p-2 border rounded"
+                              >
+                                <div className="font-medium">
+                                  Hole {hole.number}
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Par</Label>
+                                  <Select
+                                    value={hole.par.toString()}
+                                    onValueChange={(value) =>
+                                      updateHole(
+                                        hole.number,
+                                        "par",
+                                        parseInt(value),
+                                      )
+                                    }
+                                  >
+                                    <SelectTrigger className="h-8">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="3">3</SelectItem>
+                                      <SelectItem value="4">4</SelectItem>
+                                      <SelectItem value="5">5</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <Label className="text-xs">S.I.</Label>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    max={customCourse.holes}
+                                    value={hole.handicap}
+                                    onChange={(e) =>
+                                      updateHole(
+                                        hole.number,
+                                        "handicap",
+                                        parseInt(e.target.value) || 1,
+                                      )
+                                    }
+                                    className="h-8"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Yds</Label>
+                                  <Input
+                                    type="number"
+                                    min="50"
+                                    max="700"
+                                    value={hole.distance.men}
+                                    onChange={(e) =>
+                                      updateHole(hole.number, "distance", {
+                                        men: parseInt(e.target.value) || 350,
+                                        women: Math.round(
+                                          (parseInt(e.target.value) || 350) *
+                                            0.85,
+                                        ),
+                                      })
+                                    }
+                                    className="h-8"
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Back Nine */}
+                        {customCourse.holes === 18 && (
+                          <div>
+                            <h5 className="font-medium mb-3">Back Nine</h5>
+                            <div className="space-y-3">
+                              {holes.slice(9, 18).map((hole) => (
+                                <div
+                                  key={hole.number}
+                                  className="grid grid-cols-4 gap-2 items-center p-2 border rounded"
+                                >
+                                  <div className="font-medium">
+                                    Hole {hole.number}
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs">Par</Label>
+                                    <Select
+                                      value={hole.par.toString()}
+                                      onValueChange={(value) =>
+                                        updateHole(
+                                          hole.number,
+                                          "par",
+                                          parseInt(value),
+                                        )
+                                      }
+                                    >
+                                      <SelectTrigger className="h-8">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="3">3</SelectItem>
+                                        <SelectItem value="4">4</SelectItem>
+                                        <SelectItem value="5">5</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs">S.I.</Label>
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      max={customCourse.holes}
+                                      value={hole.handicap}
+                                      onChange={(e) =>
+                                        updateHole(
+                                          hole.number,
+                                          "handicap",
+                                          parseInt(e.target.value) || 1,
+                                        )
+                                      }
+                                      className="h-8"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs">Yds</Label>
+                                    <Input
+                                      type="number"
+                                      min="50"
+                                      max="700"
+                                      value={hole.distance.men}
+                                      onChange={(e) =>
+                                        updateHole(hole.number, "distance", {
+                                          men: parseInt(e.target.value) || 350,
+                                          women: Math.round(
+                                            (parseInt(e.target.value) || 350) *
+                                              0.85,
+                                          ),
+                                        })
+                                      }
+                                      className="h-8"
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Course Summary */}
+                      <div className="mt-4 p-4 bg-muted rounded-lg">
+                        <div className="grid grid-cols-3 gap-4 text-center">
+                          <div>
+                            <div className="text-sm text-muted-foreground">
+                              Total Par
+                            </div>
+                            <div className="text-xl font-bold">
+                              {holes.reduce((sum, hole) => sum + hole.par, 0)}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-muted-foreground">
+                              Total Distance
+                            </div>
+                            <div className="text-xl font-bold">
+                              {holes.reduce(
+                                (sum, hole) => sum + hole.distance.men,
+                                0,
+                              )}{" "}
+                              yds
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-muted-foreground">
+                              Holes
+                            </div>
+                            <div className="text-xl font-bold">
+                              {holes.length}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex justify-end gap-3 pt-4 border-t">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsCreatingCourse(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={createCustomCourse}
+                      disabled={
+                        !customCourse.name.trim() ||
+                        !customCourse.location.trim() ||
+                        holes.length === 0
+                      }
+                      className="golf-button"
+                    >
+                      Create Course
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
