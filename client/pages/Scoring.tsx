@@ -287,6 +287,8 @@ export default function Scoring() {
                         )
                       : 0;
                   const total = getPlayerTotal(player.id);
+                  const getsStroke =
+                    player.handicap >= currentHoleData.handicap;
 
                   return (
                     <div
@@ -295,10 +297,25 @@ export default function Scoring() {
                     >
                       <div className="flex items-center justify-between mb-3">
                         <div>
-                          <h4 className="font-medium">{player.name}</h4>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-medium">{player.name}</h4>
+                            {getsStroke && (
+                              <Badge
+                                variant="secondary"
+                                className="text-xs bg-blue-100 text-blue-800 border-blue-200"
+                              >
+                                +1 Stroke
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-sm text-muted-foreground">
                             Handicap: {player.handicap} • Total: {total.strokes}{" "}
                             strokes, {total.points} points
+                            {getsStroke && (
+                              <span className="ml-2 text-blue-600">
+                                • Gets stroke on this hole
+                              </span>
+                            )}
                           </p>
                         </div>
                         {points > 0 && (
